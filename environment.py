@@ -14,6 +14,7 @@ def index(environ):
     return (status, headers, body,)
 
 
+
 def contacts(environ):
     body = 'Request type: {}'.format(environ['PATH_INFO'])
     status = '200 OK'
