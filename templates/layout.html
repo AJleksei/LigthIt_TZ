@@ -11,41 +11,7 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 
 
-    <link rel="stylesheet" href="/stylesheets/stylesheet.css">
     <link rel="stylesheet" href="stylesheet.css">
-
-    <style type="text/css">
-        html {
-          position: relative;
-          min-height: 100%;
-        }
-
-        body {
-          margin-bottom: 60px;
-        }
-
-        .footer {
-          position: absolute;
-          bottom: 0;
-          text-align: center;
-
-          height: 60px;
-          background-color: #D2D2D2;
-        }
-
-        #sign_out {
-            color: #777;
-            box-shadow: none;
-            margin: 10px;
-            border: none;
-            background-image: linear-gradient(to bottom, #FFF 0px, #F8F8F8 100%);
-        }
-
-        #sign_out:hover {
-            color: #333;
-            background-color: transparent;
-        }
-    </style>
 
     <!-- jQuery -->
     <script src="http://code.jquery.com/jquery-latest.js"></script>
@@ -59,7 +25,6 @@
     <script src='https://www.google.com/recaptcha/api.js'></script>
 </head>
 <body>
-<div class="test" id="test"></div>
     <div class="container">
         <nav class="navbar navbar-default">
             <div class="container-fluid">
@@ -78,7 +43,6 @@
                         {% if user_name %}
                             <li><a href="/personal_account">Личный кабинет</a></li>
                         {% endif %}
-                        <li><a href="/base">Info</a></li>
                     </ul>
                     <ul class="nav navbar-nav navbar-right">
                         {% if user_name %}
@@ -88,10 +52,7 @@
                             <li><div style="cursor: default; padding: 15px">{{user_name}}</div></li>
                             <li>
                                 <form action="sign_out" method="POST" name="sign_out_form">
-                                    <!--<li><a href="/sign_out">Выйти</a></li>-->
-                                    <!--<li><a type="submit" href="/sign_out">Выйти</a></li>-->
                                     <button type="submit" id="sign_out" class="btn btn-default">Выйти</button>
-                                    <!--<button type="submit" class="btn-default">Выйти</button>-->
                                 </form>
                             </li>
                         {% endif %}
@@ -99,8 +60,8 @@
                             <li><a href="/login">Войти</a></li>
                         {% endif %}
                     </ul>
-                </div><!--/.nav-collapse -->
-            </div><!--/.container-fluid -->
+                </div>
+            </div>
         </nav>
 
         {% block body %}{% endblock %}

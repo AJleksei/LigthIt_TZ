@@ -1,3 +1,29 @@
-#test {
-    color: red;
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    margin-bottom: 60px;
+}
+
+.footer {
+    position: absolute;
+    bottom: 0;
+    text-align: center;
+    height: 60px;
+    background-color: #D2D2D2;
+}
+
+#sign_out {
+    color: #777;
+    box-shadow: none;
+    margin: 10px;
+    border: none;
+    background-image: linear-gradient(to bottom, #FFF 0px, #F8F8F8 100%);
+}
+
+#sign_out:hover {
+    color: #333;
+    background-color: transparent;
 }
