@@ -1,0 +1,153 @@
+{% extends "layout.html" %}
+{% set active_page = "index" %}
+{% block body %}
+
+    <div class="row">
+        <div class="">
+
+        </div>
+    </div>
+
+
+
+    <div class="row">
+        <div class="col-lg-10 col-md-10 col-md-offset-1">
+            <h1>Попович Алексей Анатольевич</h1>
+            <div class="col-md-4 thumbnail">
+                <!--<img src="http://ps-shtychki.ucoz.ru/_fr/0/1380279.jpg" alt="photo">-->
+                <img src="http://s017.radikal.ru/i400/1512/d1/0aeba34634e9.jpg" alt="photo">
+
+            </div>
+            <div class="col-md-4">
+            <p>Junior Python developer, полная занятость, неполная занятость</p>
+            <p>Дата рождения: 2 августа 1991 (24 года)</p>
+            <p>Город: Запорожье</p>
+            <p>Телефон: (099) 9370673</p>
+            <p>Эл. почта: ajleksei@ukr.net</p>
+                </div>
+        </div>
+    </div>
+
+
+
+    <div class="row">
+        <div class="col-lg-10 col-md-10 col-md-offset-1">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                      <h3 class="panel-title">Опыт работы</h3>
+                </div>
+                <div class="panel-body">
+                    <p>
+                        <h4>Фриланс</h4>
+                        с 04.2015 по наст. время (8 месяцев)
+                        - (Фриланс)
+                        Программист ASP.NET
+                    </p>
+                    <p>
+                        <h4>Программист ASP.NET</h4>
+                        с 12.2014 по 04.2015 (4 месяца)
+                        Луценко Д.В., ФЛП (Создание сайтов)
+                        Написание и поддержка сайта
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 col-md-10 col-md-offset-1">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Образование</h3>
+                </div>
+                <div class="panel-body">
+                    <p>
+                        <h4>Высшее</h4>
+                        с 09.2008 по 05.2013
+                        Запорожский национальный технический университет, Информатики и вычислительной техники, Программное обеспечение систем, Запорожье.
+                    </p>
+                    <p>
+                        <h4>Дополнительное образование</h4>
+                        с 01.10.2012 по 01.07.2015
+                        Компьютерная Академия ШАГ
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 col-md-10 col-md-offset-1">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Профессиональные навыки</h3>
+                </div>
+                <div class="panel-body">
+                    <p>Уверенные занания ООП.</p>
+                    <p>Опыт разработки на C# 1 год.</p>
+                    <p>Хорошее знание SQL/T-SQL</p>
+                    <p>Опыт работы с тенологиями .NET: Win Forms, GDI+, WPF, WCF, ASP.NET MVC, ADO.NET, Entity Framework.</p>
+                    <p>Программирование и умение работать с базами данных: MS SQL Server, MySQL, Oracle.</p>
+                    <p>Умение пользоваться технологиями: HTML, CSS, JavaScript / jQuery, Bootstrap, JSON.</p>
+                    <p>Опыт работы с контролями версий: Git, TFS.</p>
+                    <p>Знания других языков программирования: Java, PHP, C++, XML.</p>
+                    <p>Знание модульного тестирования (UnitTests).</p>
+                    <p>Понимание базовых шаблонов разработки (Patterns), UML.</p>
+                    <p>Опыт разработки по технологии XP.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 col-md-10 col-md-offset-1">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Владение языками</h3>
+                </div>
+                <div class="panel-body">
+                    <p>Русский — эксперт</p>
+                    <p>Английский — начинающий</p>
+                    <p>Украинский — эксперт</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 col-md-10 col-md-offset-1">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Дополнительная информация</h3>
+                </div>
+                <div class="panel-body">
+                    <p>
+                        Умею самостоятельно и быстро искать нужную информацию и применять ее на практике. Опыт работы в команде.
+                        Веду активный образ жизни.
+                        Водительские права категории В.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+    {% for user in users %}
+        <p>
+            <span>{{user.id}}</span>
+            <span>{{user.lastName}}</span>
+            <span>{{user.firstName}}</span>
+            <span>{{user.login}}</span>
+            <span>{{user.password}}</span>
+            <span>{{user.email}}</span>
+            <span>{{user.birthDate}}</span>
+            <span>{{user.mobilePhone}}</span>
+        </p>
+    {% endfor %}
+
+
+{% endblock %}
