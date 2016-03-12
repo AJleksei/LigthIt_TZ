@@ -1,5 +1,9 @@
 {% extends "layout.html" %}
+
+{% block title %}Вход{% endblock %}
+
 {% set active_page = "login" %}
+
 {% block body %}
     {% if not user %}
     <div class="row" style="margin-top: 25px">
@@ -12,7 +16,7 @@
                     <form action="login" method="POST" name="login_form" onsubmit="return validateForm(this)">
                         <div class="form-group">
                             <label for="login">Логин</label>
-                            <input name="login" type="text" class="form-control" id="login">
+                            <input name="login" type="text" class="form-control" id="login" value="{{ data['login']|default('') }}">
                             {% if errors['login'] %}
                                 <div class="alert alert-danger" role="alert">{{errors['login']}}</div>
                             {% endif %}
@@ -21,7 +25,7 @@
                         </div>
                         <div class="form-group">
                             <label for="password">Пароль</label>
-                            <input name="password" type="password" class="form-control" id="password">
+                            <input name="password" type="password" class="form-control" id="password" value="{{ data['password']|default('') }}">
                             {% if errors['password'] %}
                                 <div class="alert alert-danger" role="alert">{{errors['password']}}</div>
                             {% endif %}

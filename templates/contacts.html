@@ -1,6 +1,18 @@
 {% extends "layout.html" %}
+
+{% block title %}Контакты{% endblock %}
+
 {% set active_page = "contacts" %}
+
 {% block body %}
+    <div class="row" style="margin-top: 25px">
+        <div class="col-md-12">
+            <form action="contacts" method="POST" name="contacts_form" onsubmit="return validateForm(this)">
+
+            </form>
+        </div>
+    </div>
+
     <div class="row" style="margin-top: 25px">
         <div class="col-md-5">
             <p>

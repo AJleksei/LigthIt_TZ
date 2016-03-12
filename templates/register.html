@@ -1,4 +1,7 @@
 {% extends "layout.html" %}
+
+{% block title %}Регистрация{% endblock %}
+
 {% block body %}
     <div class="row" style="margin-top: 25px">
         <div class="col-md-5 col-md-offset-3">
@@ -10,11 +13,7 @@
                     <form action="register" method="POST" name="register_form" onsubmit="return validateForm(this)">
                         <div class="form-group">
                             <label for="first_name">Имя</label>
-                            {% if data['first_name'] %}
-                                <input name="first_name" type="text" class="form-control" id="first_name" value="{{data['first_name']}}">
-                            {% else %}
-                                <input name="first_name" type="text" class="form-control" id="first_name">
-                            {% endif %}
+                            <input name="first_name" type="text" class="form-control" id="first_name" value="{{data['first_name']|default('')}}">
 
                             {% if errors['first_name'] %}
                                 <div class="alert alert-danger" role="alert">{{errors['first_name']}}</div>
@@ -24,11 +23,7 @@
 
                         <div class="form-group">
                             <label for="last_name">Фамилия</label>
-                            {% if data['last_name'] %}
-                                <input name="last_name" type="text" class="form-control" id="last_name" value="{{data['last_name']}}">
-                            {% else %}
-                                <input name="last_name" type="text" class="form-control" id="last_name">
-                            {% endif %}
+                            <input name="last_name" type="text" class="form-control" id="last_name" value="{{data['last_name']|default('')}}">
 
                             {% if errors['last_name'] %}
                                 <div class="alert alert-danger" role="alert">{{errors['last_name']}}</div>
@@ -38,11 +33,7 @@
 
                         <div class="form-group">
                             <label for="login">Логин</label>
-                            {% if data['login'] %}
-                                <input name="login" type="text" class="form-control" id="login" value="{{data['login']}}">
-                            {% else %}
-                                <input name="login" type="text" class="form-control" id="login">
-                            {% endif %}
+                            <input name="login" type="text" class="form-control" id="login" value="{{data['login']|default('')}}">
 
                             {% if errors['login'] %}
                                 <div class="alert alert-danger" role="alert">{{errors['login']}}</div>
@@ -52,11 +43,7 @@
 
                         <div class="form-group">
                             <label for="password">Пароль</label>
-                            {% if data['password'] %}
-                                <input name="password" type="password" class="form-control" id="password" value="{{data['password']}}">
-                            {% else %}
-                                <input name="password" type="password" class="form-control" id="password">
-                            {% endif %}
+                            <input name="password" type="password" class="form-control" id="password" value="{{data['password']|default('')}}">
 
                             {% if errors['password'] %}
                                 <div class="alert alert-danger" role="alert">{{errors['password']}}</div>
@@ -66,11 +53,7 @@
 
                         <div class="form-group">
                             <label for="email">Емейл</label>
-                            {% if data['email'] %}
-                                <input name="email" type="email" class="form-control" id="email" value="{{data['email']}}">
-                            {% else %}
-                                <input name="email" type="email" class="form-control" id="email">
-                            {% endif %}
+                            <input name="email" type="email" class="form-control" id="email" value="{{data['email']|default('')}}">
 
                             {% if errors['email'] %}
                                 <div class="alert alert-danger" role="alert">{{errors['email']}}</div>
@@ -79,26 +62,18 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="birthDate">Дата рождения</label>
-                            {% if data['birthDate'] %}
-                                <input name="birthDate" type="date" class="form-control" id="birthDate" value="{{data['birthDate']}}">
-                            {% else %}
-                                <input name="birthDate" type="date" class="form-control" id="birthDate">
-                            {% endif %}
+                            <label for="birth_date">Дата рождения</label>
+                            <input name="birth_date" type="date" class="form-control" id="birth_date" value="{{data['birth_date']|default('')}}">
 
-                            {% if errors['birthDate'] %}
-                                <div class="alert alert-danger" role="alert">{{errors['birthDate']}}</div>
+                            {% if data['birth_date'] %}
+                                <div class="alert alert-danger" role="alert">{{errors['birth_date']}}</div>
                             {% endif %}
-                            <div class="alert alert-danger" style="display: none" id="birthDate_error" role="alert"></div>
+                            <div class="alert alert-danger" style="display: none" id="birth_date_error" role="alert"></div>
                         </div>
 
                         <div class="form-group">
                             <label for="mobilePhone">Мобильный телефон</label>
-                            {% if data['mobilePhone'] %}
-                                <input name="mobilePhone" type="text" class="form-control" id="mobilePhone" value="{{data['mobilePhone']}}">
-                            {% else %}
-                                <input name="mobilePhone" type="text" class="form-control" id="mobilePhone">
-                            {% endif %}
+                            <input name="mobilePhone" type="text" class="form-control" id="mobilePhone" value="{{data['mobilePhone']|default('')}}">
 
                             {% if errors['mobilePhone'] %}
                                 <div class="alert alert-danger" role="alert">{{errors['mobilePhone']}}</div>
@@ -106,15 +81,12 @@
                             <div class="alert alert-danger" style="display: none" id="mobilePhone_error" role="alert"></div>
                         </div>
 
-
                         <div class="form-group">
                             <div class="g-recaptcha" data-sitekey="6LeGYBITAAAAAPV2aOh_uXRBoYgUqK0X2ZokQseI"></div>
                         </div>
                         {% if errors['captcha'] %}
                             <div class="alert alert-danger" role="alert">{{errors['captcha']}}</div>
                         {% endif %}
-
-
 
                         <button type="submit" class="btn btn-default">Регистрация</button>
                         <a style="float: right" href="/login">Вход</a>
@@ -195,15 +167,6 @@
                     isError = true;
                 }
 
-                var re_birthDate = /[0-9]{4,4}-[0-9]{2,2}-[0-9]{2,2}/ig;
-                var res_birthDate = re_birthDate.exec(this.birthDate.value)
-                if (res_birthDate == null || this.birthDate.value.length != res_birthDate[0].length) {
-                    this.birthDate_error.style.setProperty('display', 'block');
-                    this.birthDate_error.innerHTML = 'Введите корректную дату'
-                    this.birthDate.style.setProperty('border', '1px solid #F00');
-                    isError = true;
-                }
-
                 var re_mobilePhone = /[0-9]{3,3}-[0-9]{7,7}/ig;
                 var res_mobilePhone = re_mobilePhone.exec(this.mobilePhone.value)
                 if (res_mobilePhone == null || this.mobilePhone.value.length != res_mobilePhone[0].length) {
@@ -212,7 +175,6 @@
                     this.mobilePhone.style.setProperty('border', '1px solid #F00');
                     isError = true;
                 }
-
             }
             catch (e){
             }

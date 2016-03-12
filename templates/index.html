@@ -1,9 +1,13 @@
 {% extends "layout.html" %}
+
+{% block title %}Главная{% endblock %}
+
 {% set active_page = "index" %}
+
 {% block body %}
 
     <div class="row">
-        <div class="">
+        <div class="col-lg-12 col-md-12">
 
         </div>
     </div>
@@ -15,16 +19,17 @@
             <h1>Попович Алексей Анатольевич</h1>
             <div class="col-md-4 thumbnail">
                 <!--<img src="http://ps-shtychki.ucoz.ru/_fr/0/1380279.jpg" alt="photo">-->
-                <img src="http://s017.radikal.ru/i400/1512/d1/0aeba34634e9.jpg" alt="photo">
+                {# <img src="http://s017.radikal.ru/i400/1512/d1/0aeba34634e9.jpg" alt="photo"> #}
+                <img src="../static/img/my_photo.jpg" alt="photo">
 
             </div>
             <div class="col-md-4">
-            <p>Junior Python developer, полная занятость, неполная занятость</p>
-            <p>Дата рождения: 2 августа 1991 (24 года)</p>
-            <p>Город: Запорожье</p>
-            <p>Телефон: (099) 9370673</p>
-            <p>Эл. почта: ajleksei@ukr.net</p>
-                </div>
+                <p>Junior Python developer, полная занятость, неполная занятость</p>
+                <p>Дата рождения: 2 августа 1991 (24 года)</p>
+                <p>Город: Запорожье</p>
+                <p>Телефон: (099) 9370673</p>
+                <p>Эл. почта: AJleksei@ukr.net</p>
+            </div>
         </div>
     </div>
 

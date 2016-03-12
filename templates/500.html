@@ -1,12 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Error 500</title>
-</head>
-<body>
-    <h1>Error 500</h1>
+{% extends "layout.html" %}
+
+{% block title %}Ошибка 500{% endblock %}
+
+{% block body %}
+    <h1>Ошибка 500</h1>
     <h2>Error message: {{ error_message }}</h2>
     <h2>Error info: {{ error_info }}</h2>
-</body>
-</html>
+{% endblock %}
