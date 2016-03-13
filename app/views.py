@@ -1,26 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import Cookie
-import cgi
-import hashlib
+import datetime
 import os
 import re
+import hashlib
 import traceback
 import urllib
 import urllib2
 
-from twisted.spread.pb import respond
-import datetime
 from smtplib import SMTP_SSL
 from jinja2 import Environment, FileSystemLoader
-from db import Database, User
-from webob import Request, Response, exc
-import settings
+from webob import Request, Response
+
 from models import *
+#import settings
+
+#from db import Database, User
+#import Cookie
+#import cgi
+#from twisted.spread.pb import respond
 
 
-def index(environ):
-    request = Request(environ)
+def index(request):
     response = Response()
     user_data = get_user_data(request)
     page_content = {'user_data': user_data}
@@ -28,32 +29,49 @@ def index(environ):
     return response
 
 
-def get_user_data(request):
-    if request.cookies.__contains__('session_id'):
-        session_id = request.cookies['session_id']
-        user = get_user_from_session_id(session_id)
-        user_data = {
-            'name': '{} {}.'.format(user.first_name, user.last_name[0]),
-            'image': user.photo or '/static/img/default.png'
-        }
-        return user_data
-    return None
-
-
-def contacts(environ):
+def contacts(request):
     response = Response()
-    page_content = {}
-    response.text = templates.get_template('contacts.html').render(
-        page_content)
+    user_data = get_user_data(request)
+    data = {}
+    errors = {}
+
+    if request.POST:
+        data['email'] = request.POST['email'].strip()
+        data['message_subject'] = request.POST['message_subject'].strip()
+        data['message'] = request.POST['message'].strip()
+
+        if not validate_email(data['email']):
+            errors['email'] = u'Введите корректный Емейл'
+
+        if not data['message_subject']:
+            errors['message_subject'] = u'Тема сообщения не может быть пустой'
+
+        if len(data['message_subject']) > 2000:
+            errors['message_subject'] = u'Тема сообщения не может быть больше 2000 символов'
+
+        if not data['message']:
+            errors['message'] = u'Сообщение не может быть пустым'
+
+        if not data['message']:
+            errors['message'] = u'Сообщение не может быть больше 50000 символов'
+
+        if not errors:
+            send_email(data['email'], data['message_subject'].encode('utf8'), data['message'].encode('utf8'))
+
+    page_content = {
+        'user_data': user_data,
+        'errors': errors,
+        'data': data
+    }
+    response.text = templates.get_template('contacts.html').render(page_content)
     return response
 
 
-def login(environ):
-    request = Request(environ)
+def login(request):
     response = Response()
 
     # Если пользователь залогинен, он не сможет попасть на страницу login
-    user_auth = is_auth_user(environ)
+    user_auth = is_auth_user(request)
     if user_auth:
         return redirect_to_home(request)
 
@@ -61,40 +79,22 @@ def login(environ):
     data = {}
 
     if request.POST:
-    #if request.method == 'POST':
         login = data['login'] = request.POST['login'].strip()
         password = data['password'] = request.POST['password'].strip()
-        is_error = False
 
         if not validate_password(password):
             errors['password'] = u'Длина пароля должна быть от 6 до 16 символов'
-            is_error = True
 
         if not validate_login(login):
             errors['login'] = u'Длина Логина должна быть от 1 до 25 символов'
-            is_error = True
 
-        if not is_error:
-            #database = Database()
-
-            #user_db = database.get_user_from_login(login)
+        if not errors:
             user_db = get_user_from_login(login)
-            if not user_db:
-                errors['user'] = u"Неверное имя пользователя или пароль"
+            if user_db and user_db.password == md5(password):
+                response = authorization(response, user_db)
+                return redirect_to_home(request, response)
             else:
-                password = md5(password)
-
-                if user_db.password == password:
-                    # Сохраняем в cookie данные, что пользователь залогинелся
-                    response = authorization(response, user_db)
-                    #response.status = '301 Moved'
-                    #response.location = request.host_url
-
-                    # print response.headers.get('Set-Cookie')
-                    #return response
-                    redirect_to_home(request, response)
-                else:
-                    errors['user'] = u"Неверное имя пользователя или пароль"
+                errors['user'] = u"Неверное имя пользователя или пароль"
 
     page_content = {'errors': errors, 'data': data}
 
@@ -102,12 +102,11 @@ def login(environ):
     return response
 
 
-def register(environ):
-    request = Request(environ)
+def register(request):
     response = Response()
 
     # Если пользователь залогинелся, он не может попасть на эту страницу
-    user_auth = is_auth_user(environ)
+    user_auth = is_auth_user(request)
     if user_auth:
         return redirect_to_home(request)
 
@@ -115,73 +114,60 @@ def register(environ):
     data = {}
 
     if request.POST:
-    #if request.method == 'POST':
-        first_name = data['first_name'] = request.POST['first_name'].strip()
-        last_name = data['last_name'] = request.POST['last_name'].strip()
-        login = data['login'] = request.POST['login'].strip()
-        password = data['password'] = request.POST['password'].strip()
-        email = data['email'] = request.POST['email'].strip()
-        birth_date = data['birth_date'] = request.POST['birth_date'].strip()
-        phone = data['mobilePhone'] = request.POST['mobilePhone'].strip()
+        data['first_name'] = request.POST['first_name'].strip()
+        data['last_name'] = request.POST['last_name'].strip()
+        data['login'] = request.POST['login'].strip()
+        data['password'] = request.POST['password'].strip()
+        data['confirm_password'] = request.POST['confirm_password'].strip()
+        data['email'] = request.POST['email'].strip()
+        data['birth_date'] = request.POST['birth_date'].strip()
+        data['mobile_phone'] = request.POST['mobile_phone'].strip()
         captcha = request.POST['g-recaptcha-response']
-        is_error = False
 
-        if not validate_password(password):
-            errors[
-                'password'] = u'Длина пароля должна быть от 6 до 16 символов'
-            is_error = True
+        if not validate_password(data['password']):
+            errors['password'] = u'Длина пароля должна быть от 6 до 16 символов'
 
-        if not validate_login(login):
+        if not validate_password(data['confirm_password']):
+            errors['confirm_password'] = u'Длина пароля должна быть от 6 до 16 символов'
+
+        if data['password'] != data['confirm_password']:
+            errors['confirm_password'] = u'Пароли не совпадают'
+
+        if not validate_login(data['login']):
             errors['login'] = u'Длина Логина должна быть от 1 до 25 символов'
-            is_error = True
 
-        if not validate_first_last_name(first_name):
-            errors[
-                'first_name'] = u'Длина Имени должна быть от 1 до 25 символов'
-            is_error = True
+        if not validate_first_last_name(data['first_name']):
+            errors['first_name'] = u'Длина Имени должна быть от 1 до 25 символов'
 
-        if not validate_first_last_name(last_name):
-            errors[
-                'last_name'] = u'Длина Фамилии должна быть от 1 до 25 символов'
-            is_error = True
+        if not validate_first_last_name(data['last_name']):
+            errors['last_name'] = u'Длина Фамилии должна быть от 1 до 25 символов'
 
-        if not validate_email(email):
+        if not validate_email(data['email']):
             errors['email'] = u'Введите корректный Емейл'
-            is_error = True
 
-        if not validate_birth_date(birth_date):
-            errors['birthDate'] = u'\nВведите корректную дату'
-            is_error = True
+        if not validate_birth_date(data['birth_date']):
+            errors['birth_date'] = u'Введите корректную Дату'
 
-        if not validate_phone(phone):
-            errors['mobilePhone'] = u'Введите корректный Мобильный телефон'
-            is_error = True
+        if not validate_phone(data['mobile_phone']):
+            errors['mobile_phone'] = u'Введите корректный Мобильный телефон'
 
         if not submit(settings.RECAPTCHA_PRIVATE_KEY, captcha):
-            errors['captcha'] = u"\nCaptcha обязателен для заполнения"
+            errors['captcha'] = u"Captcha обязателен для заполнения"
 
-        #database = Database()
-
-        #user_db = database.get_user_from_login(login)
-        user_db = get_user_from_login(login)
+        user_db = get_user_from_login(data['login'])
         if user_db:
             errors['login'] = u"Пользователь с таким логином уже существует"
-            is_error = True
 
-        if not is_error:
+        if not errors:
             # Запоминаем пароль, чтобы отправить его на емейл
             # Т.к. пароль сохраняется хешированый, а при сохранении может
             #  произойти ошибка, то отправляем сообщение, после сохранения
             # данных в БД
-            password_hash = md5(password)
+            password_hash = md5(data['password'])
             session_id = create_session_id()
-            #user = User(None, last_name, first_name, login, password_hash,
-                        #email, birth_date, phone, session_id)
-            #database.add_user(user)
-            #user_db_new = database.get_user_from_login(login)
-            Users.create(last_name=last_name, first_name=first_name,
-                         login=login, password=password_hash,
-                         email=email, birth_date=birth_date, mobile_phone=phone,
+            Users.create(last_name=data['last_name'], first_name=data['first_name'],
+                         login=data['login'], password=password_hash,
+                         email=data['email'], birth_date=data['birth_date'], mobile_phone=data['mobile_phone'],
                          session_id=session_id)
 
             # Формируем текст для отправки сообщения на email
@@ -192,71 +178,64 @@ def register(environ):
                         Пароль: {}
                         День рождения: {}
                         Мобильный телефон: {}''' \
-                .format(last_name, first_name, login, password, birth_date,
-                        phone)
+                .format(data['last_name'], data['first_name'], data['login'], data['password'], data['password'],
+                        data['mobile_phone'])
             subject = 'Регистрация прошла успешно!!!'
             # Отправляем сообщение, с регистрационными данными, на указаный email
-            send_email(email, subject, message)
+            send_email(data['email'], subject, message)
 
             response.set_cookie('session_id', session_id)
 
-            redirect_to_home(request, response)
-            #response.status = '301 Moved'
-            #response.refer = request.host_url
-            #return response
+            return redirect_to_home(request, response)
 
     page_content = {'errors': errors, 'data': data}
-    response.text = templates.get_template('register.html').render(
-        page_content)
+    response.text = templates.get_template('register.html').render(page_content)
     return response
 
 
-def view_404(environ):
+def view_404(request):
     response = Response()
-    page_content = {}
+    user_data = get_user_data(request)
+    page_content = {'user_data': user_data}
     response.status = '404 NOT FOUND'
     response.text = templates.get_template('404.html').render(page_content)
     return response
 
 
-def view_500(environ, error):
+def view_500(request, error):
     response = Response()
-    page_content = {'error_message': error.message,
-                    'error_info': traceback.format_exc()}
+    user_data = get_user_data(request)
+    page_content = {
+        'error_message': error.message,
+        'error_info': traceback.format_exc(),
+        'user_data': user_data
+    }
     response.status = '500 INTERNAL SERVER ERROR'
     response.text = templates.get_template('500.html').render(page_content)
     return response
 
 
-def delete_account(environ):
-    request = Request(environ)
+def delete_account(request):
     response = Response()
 
-    user_auth = is_auth_user(environ)
+    user_auth = is_auth_user(request)
     # Удалить аккаут может только залогиненый пользователь
     if not user_auth:
         return redirect_to_home(request)
 
     # Удаляем пользователя из БД
     Users.delete().where(Users.session_id == user_auth.session_id)
-    # database = Database()
-    # database.delete_user_from_id(user_auth.id)
 
-
-    response.status = '200 OK'
     page_content = {}
     # Очищаем cookie
     response.delete_cookie('session_id')
-    response.text = templates.get_template('delete_account.html').render(
-        page_content)
+    response.text = templates.get_template('delete_account.html').render(page_content)
     return response
-    #return redirect_to_home(request, response)
 
 
-def sign_out(environ):
-    request = Request(environ)
+def sign_out(request):
 
-    user_auth = is_auth_user(environ)
+    user_auth = is_auth_user(request)
     # Не авторизованный пользователь не может попость на эту страницу
     if not user_auth:
         return redirect_to_home(request)
@@ -264,106 +243,143 @@ def sign_out(environ):
     response = Response()
     response.delete_cookie('session_id')
 
-    response.status = '200 OK'
     page_content = {}
-    response.text = templates.get_template('sign_out.html').render(
-        page_content)
+    response.text = templates.get_template('sign_out.html').render(page_content)
     return response
 
-    #return redirect_to_home(request, response)
+
+def field_validator(data):
+    validate_fields = {
+        ('first_name', validate_first_last_name, u'Длина Имени должна быть от 1 до 25 символов'),
+        ('last_name', validate_first_last_name, u'Длина Фамилии должна быть от 1 до 25 символов'),
+        ('login', validate_login, u'Длина Логина должна быть от 1 до 25 символов'),
+        ('password', validate_password, u'Длина пароля должна быть от 6 до 16 символов'),
+        ('old_password', validate_password, u'Длина пароля должна быть от 6 до 16 символов'),
+        ('new_password', validate_password, u'Длина пароля должна быть от 6 до 16 символов'),
+        ('new_confirm_password', validate_password, u'Длина пароля должна быть от 6 до 16 символов'),
+        ('email', validate_email, u'Введите корректный Емейл'),
+        ('birth_date', validate_birth_date, u'Введите корректную Дату'),
+        ('mobile_phone', validate_phone, u'Введите корректный Мобильный телефон'),
+    }
+
+    errors = {}
+
+    for field, validator, error in validate_fields:
+        if data.__contains__(field):
+            if not validator(data[field]):
+                errors[field] = error
+
+    return errors
 
 
-def personal_account(environ):
-    request = Request(environ)
+def personal_account(request):
     response = Response()
-    user_auth = is_auth_user(environ)
+
+    page_content = {}
+    user_auth = is_auth_user(request)
     # Если пользователь не залогинен, отправляем его на главную страницу
     if not user_auth:
         return redirect_to_home(request)
 
     errors = {}
     data = {}
-    args = {}
-    is_error = False
 
     # Если это метод POST
     if request.POST:
-    #if request.method == 'POST':
         # Если в форме есть поле password
-        if request.POST.__contains__('password'):
-            # password = urllib.unquote(data_form['password']).strip()
-            password = request.POST['password'].strip()
-            data['password'] = password
+        if request.POST.__contains__('old_password'):
+            data['old_password'] = request.POST['old_password'].strip()
+            data['new_password'] = request.POST['new_password'].strip()
+            data['new_confirm_password'] = request.POST['new_confirm_password'].strip()
 
-            if not validate_password(password):
-                errors[
-                    'password'] = u'Длина пароля должна быть от 6 до 16 символов'
-                is_error = True
+            errors = field_validator(data)
+
+            #if not validate_password(data['password']):
+            #   errors['password'] = u'Длина пароля должна быть от 6 до 16 символов'
 
             # Если ошибок нет
-            if not is_error:
+            if not errors:
                 session_id = request.cookies['session_id']
                 user_db = get_user_from_session_id(session_id)
 
-                password_hash = md5(password)
                 # Изменяем пароль в БД
-                user_db.password = password_hash
+                user_db.password = md5(data['password'])
+                user_db.session_id = create_session_id()
                 user_db.save()
+                # Обновляем cookie
+                response.set_cookie('session_id', user_db.session_id)
+        elif request.POST.__contains__('photo'):
+            if request.POST['photo'].file:
+                photo = request.POST['photo'].file.read()
+                #import imghdr
+                #imghdr.what(photo)
+                # Ищем расширение файла
+                #start = request.POST['photo'].filename.find('.')
+                #end = len(request.POST['photo'].filename)
+                #os.path.name
+                extension = os.path.splitext(request.POST['photo'])[1].replace('.', '')
+
+                # Получаем расширение файла
+                #filename = request.POST['photo'].filename[start:end]
+
+                # В название картинки пишем id юзера, чтобы не было конфликтов
+                # Если пользователь загрузит еще аватарку, то старая перезапишется
+                filename = os.path.join('media/', user_auth.login + extension)
+                f = open(filename, 'wb')
+                f.write(photo)
+                f.close()
+
+                user_auth.photo = filename
+                user_auth.save()
+            else:
+                errors['photo'] = u'Файл не выбран'
         else:
-            first_name = data['first_name'] = request.POST['first_name'].strip()
-            last_name = data['last_name'] = request.POST['last_name'].strip()
-            login = data['login'] = request.POST['login'].strip()
-            email = data['email'] = request.POST['email'].strip()
-            birth_date = data['birthDate'] = request.POST['birthDate'].strip()
-            mobilePhone = data['mobilePhone'] = request.POST['mobilePhone'].strip()
+            data['first_name'] = request.POST['first_name'].strip()
+            data['last_name'] = request.POST['last_name'].strip()
+            data['login'] = request.POST['login'].strip()
+            data['email'] = request.POST['email'].strip()
+            data['birth_date'] = request.POST['birth_date'].strip()
+            data['mobile_phone'] = request.POST['mobile_phone'].strip()
 
-            if not validate_first_last_name(first_name):
+            if not validate_first_last_name(data['first_name']):
                 errors['first_name'] = u'Длина Имени должна быть от 1 до 25 символов'
-                is_error = True
 
-            if not validate_first_last_name(last_name):
+            if not validate_first_last_name(data['last_name']):
                 errors['last_name'] = u'Длина Фамилии должна быть от 1 до 25 символов'
-                is_error = True
 
-            if not validate_email(email):
+            if not validate_email(data['email']):
                 errors['email'] = u'Введите корректный Емейл'
-                is_error = True
 
-            if not validate_birth_date(birth_date):
-                errors['birthDate'] = u'\nВведите корректную дату'
-                is_error = True
+            if not validate_birth_date(data['birth_date']):
+                errors['birth_date'] = u'Введите корректную дату'
 
-            if not validate_phone(mobilePhone):
-                errors['mobilePhone'] = u'Введите корректный Мобильный телефон'
-                is_error = True
+            if not validate_phone(data['mobile_phone']):
+                errors['mobile_phone'] = u'Введите корректный Мобильный телефон'
 
-            if not validate_login(login):
+            if not validate_login(data['login']):
                 errors['login'] = u'Длина Логина должна быть от 1 до 25 символов'
-                is_error = True
 
             # Если ошибок нет
-            if not is_error:
+            if not errors:
                 session_id = request.cookies['session_id']
                 user_db = get_user_from_session_id(session_id)
                 if user_db:
-                    user_check_login = get_user_from_login(login)
-                    if user_check_login:
+                    user_check_login = get_user_from_login(data['login'])
+                    if user_check_login and user_check_login.session_id != user_db.session_id:
                         errors['login'] = u"Пользователь с таким логином уже существует"
-                        is_error = True
 
                     else:
                         # Сохраняем изменения в БД
-                        user_db.login = login
-                        user_db.first_name = first_name
-                        user_db.last_name = last_name
-                        user_db.email = email
-                        user_db.birth_date = birth_date
-                        user_db.mobile_phone = mobilePhone
+                        user_db.login = data['login']
+                        user_db.first_name = data['first_name']
+                        user_db.last_name = data['last_name']
+                        user_db.email = data['email']
+                        user_db.birth_date = data['birth_date']
+                        user_db.mobile_phone = data['mobile_phone']
                         user_db.save()
-                        # Обновляем cookie
 
     elif request.method == 'GET' or request.POST and\
-            request.POST.__contains__('password'):
+            request.POST.__contains__('password') or request.POST.__contains__('photo'):
         # Если это GET запрос или POST с изменением пароля
         session_id = request.cookies['session_id']
         user_db = get_user_from_session_id(session_id)
@@ -372,18 +388,18 @@ def personal_account(environ):
             data['last_name'] = user_db.last_name
             data['login'] = user_db.login
             data['email'] = user_db.email
-            data['birthDate'] = user_db.birth_date
-            data['mobilePhone'] = user_db.mobile_phone
+            data['birth_date'] = user_db.birth_date
+            data['mobile_phone'] = user_db.mobile_phone
 
-    args['data'] = data
-    #args = {'errors': errors, 'data': data}
-    args['errors'] = errors
-    response.text = templates.get_template('personal_account.html').render(args)
+    user_data = get_user_data(request)
+    page_content['user_data'] = user_data
+    page_content['data'] = data
+    page_content['errors'] = errors
+    response.text = templates.get_template('personal_account.html').render(page_content)
     return response
 
 
-def static(environ):
-    request = Request(environ)
+def static(request):
     response = Response()
 
     extension = os.path.splitext(request.path_url)[1].replace('.', '')
@@ -392,57 +408,55 @@ def static(environ):
     file_path = os.path.join(settings.STATIC,
                              request.path_info.replace('/static/', ''))
 
-    if mime == 'image/x-icon':
-        file_path = os.path.join(settings.STATIC,
-                                 request.path_info.replace('/', ''))
-
     try:
         file = open(file_path, 'rb')
         response.body = file.read()
-    except:
-        return view_404(environ)
+    except Exception:
+        try:
+            file_path = os.path.join(settings.MEDIA,
+                                 request.path_info.replace('/media/', ''))
+            file = open(file_path, 'rb')
+            response.body = file.read()
+        except Exception:
+            return view_404(request)
+        else:
+            response.content_type = mime
     else:
         response.content_type = mime
     return response
 
 
-def load_avatar(environ):
-    request = Request(environ)
-    user_id = 0
+def load_avatar(request):
+    response = Response()
 
-    user_auth = is_auth_user(environ)
+    user_auth = is_auth_user(request)
     if not user_auth:
         return redirect_to_home(request)
 
     errors = {}
     data = {}
 
-    status = '200 OK'
-    # status = '301 Moved'
-    # refer = BASE_ADDR
-    headers = [
-        ('Content-type', 'text/html; charset=utf-8'),
-        # ('Location', refer)
-    ]
+    if request.POST:
+        photo = request.POST['photo'].file.read()
+        # Ищем расширение файла
+        start = request.POST['photo'].filename.find('.')
+        end = len(request.POST['photo'].filename)
+        os.path.name
 
-    if environ['REQUEST_METHOD'] == 'POST':
-        formdata = cgi.FieldStorage(environ=environ, fp=environ['wsgi.input'])
-        if 'avatar' in formdata and formdata['avatar'].filename != '':
-            file_data = formdata['avatar'].file.read()
-            # Ищем расширение файла
-            start = formdata['avatar'].filename.find('.')
-            end = len(formdata['avatar'].filename)
+        # Получаем расширение файла
+        filename = request.POST['photo'].filename[start:end]
 
-            # Получаем расширение файла
-            filename = formdata['avatar'].filename[start:end]
+        # В название картинки пишем id юзера, чтобы не было конфликтов
+        # Если пользователь загрузит еще аватарку, то старая перезапишется
+        target = os.path.join('media/', user_auth.login + filename)
+        f = open(target, 'wb')
+        f.write(photo)
+        f.close()
 
-            # В название картинки пишем id юзера, чтобы не было конфликтов
-            # Если пользователь загрузит еще аватарку, то старая перезапишется
-            target = os.path.join('uploads', user_id + filename)
-            f = open(target, 'wb')
-            f.write(file_data)
-            f.close()
-    else:
+        user_auth.photo = target
+        user_auth.save()
+    if request.GET:
+        """
         # Если это GET запрос
         database = Database()
         user_id = None
@@ -459,11 +473,13 @@ def load_avatar(environ):
             data['email'] = user_db.email
             data['birthDate'] = user_db.birthDate
             data['mobilePhone'] = user_db.mobilePhone
+        """
 
     template = templates.get_template('personal_account.html')
 
     args = {'errors': errors, 'data': data}
-    return status, headers, template, args,
+    #return status, headers, template, args,
+    return response
 
 
 def get_stylesheets(environ):
@@ -545,7 +561,7 @@ def create_session_id():
     return hashlib.sha224(os.urandom(56)).hexdigest()
 
 
-# Авторизация, запись в сессию, ид сессии юзера из базы
+# Записываем id юзера из базы в cookie
 def authorization(response, user):
     response.set_cookie('session_id', user.session_id)
     return response
@@ -553,26 +569,20 @@ def authorization(response, user):
 
 # Проверка авторизован ли пользователь
 # Если в cookie тот же session_id что и в базе, значит пользователь авторизован
-def is_auth_user(environ):
-    request = Request(environ)
-    #user = None
+def is_auth_user(request):
     try:
         session_id = request.cookies['session_id']
-        #db = Database()
-        #user = db.get_user_from_session_id(session_id)
         user = get_user_from_session_id(session_id)
         return user
     except Exception:
         return None
-    #return user
 
 
 # Метод для отправки сообщений на емейл
 def send_email(to_addr, subject, message):
     # Формируем сообщение
-    msg = "From: {}\nTo: {}\nSubject: {}\n\n{}".format(settings.FROM_EMAIL,
-                                                       to_addr,
-                                                       subject, message)
+    msg = "From: {}\nTo: {}\nSubject: {}\n\n{}".format(
+        settings.FROM_EMAIL, to_addr,subject, message)
 
     # Отправляем сообщение
     smtp = SMTP_SSL()
@@ -608,8 +618,8 @@ def submit(secret, response):
 
     httpresp = urllib2.urlopen(request)
 
-    return_values = httpresp.read().splitlines();
-    httpresp.close();
+    return_values = httpresp.read().splitlines()
+    httpresp.close()
 
     return_code = return_values[1]
 
@@ -618,6 +628,17 @@ def submit(secret, response):
     else:
         return False
 
+
+def get_user_data(request):
+    if request.cookies.__contains__('session_id'):
+        session_id = request.cookies['session_id']
+        user = get_user_from_session_id(session_id)
+        user_data = {
+            'name': '{} {}.'.format(user.first_name, user.last_name[0]),
+            'image': user.photo or '/static/img/default.png'
+        }
+        return user_data
+    return None
 
 """
 #Проверка капчи
